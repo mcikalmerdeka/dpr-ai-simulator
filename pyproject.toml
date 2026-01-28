@@ -1,0 +1,15 @@
+[project]
+name = "dpr-simulator"
+version = "0.1.0"
+description = "AI-powered simulation of Indonesian Parliament (DPR) processes"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "gradio>=6.4.0",
+    "langchain>=1.2.7",
+    "langchain-core>=1.2.7",
+    "langchain-openai>=1.1.7",
+    "openai>=2.16.0",
+    "pydantic>=2.12.5",
+    "pydantic-settings>=2.12.0",
+]

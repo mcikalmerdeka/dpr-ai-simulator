@@ -1,0 +1,19 @@
+# Python-generated files
+__pycache__/
+*.py[oc]
+build/
+dist/
+wheels/
+*.egg-info
+
+# Cursor rules
+.cursor/rules/
+
+# Virtual environments
+.venv
+
+# Environment variables
+# .env
+
+# Other files
+others/
