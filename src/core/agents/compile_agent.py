@@ -17,7 +17,7 @@ class CompileAgent(BaseAgent):
     """
 
     def __init__(self, **kwargs):
-        super().__init__(temperature=0.5, **kwargs)
+        super().__init__(temperature=0.7, **kwargs)
 
     def get_system_prompt(self) -> str:
         return """Anda adalah staff ahli DPR yang bertugas mengompilasi masukan dari para anggota DPR.

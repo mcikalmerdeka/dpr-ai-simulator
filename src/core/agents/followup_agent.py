@@ -16,7 +16,7 @@ class FollowUpAgent(BaseAgent):
     """
 
     def __init__(self, **kwargs):
-        super().__init__(temperature=0.2, **kwargs)
+        super().__init__(temperature=0.7, **kwargs)
 
     def get_system_prompt(self) -> str:
         return """Anda adalah Ketua Komisi terkait di DPR RI yang bertugas menentukan tindak lanjut aspirasi rakyat.
