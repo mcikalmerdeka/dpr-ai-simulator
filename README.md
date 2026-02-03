@@ -22,6 +22,8 @@ tags:
 
 Proyek eksperimen untuk mensimulasikan fungsi DPR menggunakan AI agents, menunjukkan potensi efisiensi dibandingkan dengan sistem konvensional yang menghabiskan triliunan rupiah APBN setiap tahunnya.
 
+Coba proyeknya disini: [Hugging Face Spaces](https://huggingface.co/spaces/mcikalmerdeka/dpr-simulator)
+
 ## 🎯 Tujuan Proyek
 
 Proyek ini mensimulasikan 3 fungsi utama DPR dalam menangani aspirasi rakyat melalui pipeline AI multi-tahap:
