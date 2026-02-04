@@ -15,8 +15,4 @@ jobs:
       - name: Push to hub
         env:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
-        run: |
-          git remote add hf https://mcikalmerdeka:$HF_TOKEN@huggingface.co/spaces/mcikalmerdeka/dpr-simulator.git || true
-          git fetch hf main
-          if git rev-parse hf/main >/dev/null 2>&1; then git merge hf/main --no-edit --no-ff; fi
-          git push https://mcikalmerdeka:$HF_TOKEN@huggingface.co/spaces/mcikalmerdeka/dpr-simulator main
+        run: git push https://mcikalmerdeka:$HF_TOKEN@huggingface.co/spaces/mcikalmerdeka/dpr-simulator main
