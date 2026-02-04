@@ -18,6 +18,8 @@ tags:
 
 # 🏛️ DPR AI Simulator
 
+![DPR AI Simulator](assets/project_header.png)
+
 **Simulasi berbasis AI untuk proses Dewan Perwakilan Rakyat (DPR) Indonesia**
 
 Proyek eksperimen untuk mensimulasikan fungsi DPR menggunakan AI agents, menunjukkan potensi efisiensi dibandingkan dengan sistem konvensional yang menghabiskan triliunan rupiah APBN setiap tahunnya.
