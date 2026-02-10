@@ -1,11 +1,14 @@
 """Follow-up (Menindaklanjuti) agent for determining concrete actions."""
 
 import json
+import logging
 
 from langchain_core.messages import HumanMessage, SystemMessage
 
 from .base import BaseAgent
 from ...models import Aspirasi, KompilasiResponse, TindakLanjutResponse
+
+logger = logging.getLogger("dpr_simulator.agents.followup")
 
 
 class FollowUpAgent(BaseAgent):
@@ -96,7 +99,10 @@ Berikan respons dalam format JSON:
         Returns:
             TindakLanjutResponse with concrete action plan
         """
+        logger.info(f"FollowUpAgent creating action plan for aspirasi {aspirasi.id}")
+        
         if kompilasi.status != "terkumpul":
+            logger.warning(f"Cannot create follow-up: compilation status is {kompilasi.status}")
             return TindakLanjutResponse(
                 langkah_tindak_lanjut=[],
                 komisi_penanggung_jawab="",
@@ -114,15 +120,16 @@ Berikan respons dalam format JSON:
 
         cost = 0.0
         try:
+            logger.debug(f"Making OpenAI API call for follow-up planning...")
             response = await self.llm.ainvoke(messages)
 
             # Calculate cost
             if hasattr(response, "response_metadata"):
                 usage = response.response_metadata.get("token_usage", {})
-                cost = self._calculate_cost(
-                    usage.get("prompt_tokens", 0),
-                    usage.get("completion_tokens", 0),
-                )
+                prompt_tokens = usage.get("prompt_tokens", 0)
+                completion_tokens = usage.get("completion_tokens", 0)
+                cost = self._calculate_cost(prompt_tokens, completion_tokens)
+                logger.debug(f"Follow-up - Tokens: {prompt_tokens} prompt, {completion_tokens} completion, Cost: ${cost:.6f}")
 
             # Parse JSON response
             content = response.content
@@ -135,20 +142,27 @@ Berikan respons dalam format JSON:
             content = content.strip()
 
             result = json.loads(content)
+            
+            komisi = result.get("komisi_penanggung_jawab", "")
+            timeline = result.get("timeline", "")
+            anggaran = result.get("estimasi_anggaran", "")
+            
+            logger.info(f"Follow-up plan created - Commission: {komisi}, Timeline: {timeline}, Budget: {anggaran}, Cost: ${cost:.6f}")
 
             return TindakLanjutResponse(
                 langkah_tindak_lanjut=result.get("langkah_tindak_lanjut", []),
-                komisi_penanggung_jawab=result.get("komisi_penanggung_jawab", ""),
-                timeline=result.get("timeline", ""),
+                komisi_penanggung_jawab=komisi,
+                timeline=timeline,
                 indikator_keberhasilan=result.get("indikator_keberhasilan", []),
                 mekanisme=result.get("mekanisme", ""),
-                estimasi_anggaran=result.get("estimasi_anggaran", ""),
+                estimasi_anggaran=anggaran,
                 rincian_anggaran=result.get("rincian_anggaran", []),
                 sumber_dana=result.get("sumber_dana", ""),
                 cost_usd=cost,
             )
 
         except Exception as e:
+            logger.error(f"FollowUpAgent failed: {str(e)}")
             return TindakLanjutResponse(
                 langkah_tindak_lanjut=[],
                 komisi_penanggung_jawab="",

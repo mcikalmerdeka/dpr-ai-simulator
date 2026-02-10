@@ -2,11 +2,14 @@
 
 import json
 from typing import List
+import logging
 
 from langchain_core.messages import HumanMessage, SystemMessage
 
 from .base import BaseAgent
 from ...models import Aspirasi, AbsorpsiResponse, KompilasiResponse
+
+logger = logging.getLogger("dpr_simulator.agents.compile")
 
 
 class CompileAgent(BaseAgent):
@@ -78,12 +81,17 @@ Berikan respons dalam format JSON:
         Returns:
             KompilasiResponse with compiled analysis
         """
+        logger.info(f"CompileAgent processing {len(responses)} responses for aspirasi {aspirasi.id}")
+        
         # Filter relevant responses
         relevant_responses = [
             r for r in responses if r.relevansi in ["Tinggi", "Sedang"] and r.error is None
         ]
+        
+        logger.info(f"Filtered to {len(relevant_responses)} relevant responses (Tinggi/Sedang)")
 
         if not relevant_responses:
+            logger.warning(f"No relevant responses found for aspirasi {aspirasi.id}")
             return KompilasiResponse(
                 status="tidak_relevan",
                 jumlah_anggota=0,
@@ -97,15 +105,16 @@ Berikan respons dalam format JSON:
 
         cost = 0.0
         try:
+            logger.debug(f"Making OpenAI API call for compilation...")
             response = await self.llm.ainvoke(messages)
 
             # Calculate cost
             if hasattr(response, "response_metadata"):
                 usage = response.response_metadata.get("token_usage", {})
-                cost = self._calculate_cost(
-                    usage.get("prompt_tokens", 0),
-                    usage.get("completion_tokens", 0),
-                )
+                prompt_tokens = usage.get("prompt_tokens", 0)
+                completion_tokens = usage.get("completion_tokens", 0)
+                cost = self._calculate_cost(prompt_tokens, completion_tokens)
+                logger.debug(f"Compilation - Tokens: {prompt_tokens} prompt, {completion_tokens} completion, Cost: ${cost:.6f}")
 
             # Parse JSON response
             content = response.content
@@ -118,18 +127,22 @@ Berikan respons dalam format JSON:
             content = content.strip()
 
             result = json.loads(content)
+            
+            themes = result.get("tema_utama", [])
+            logger.info(f"Compilation successful - Themes: {themes}, Cost: ${cost:.6f}")
 
             return KompilasiResponse(
                 status="terkumpul",
                 jumlah_anggota=len(relevant_responses),
                 ringkasan=result.get("ringkasan", ""),
-                tema_utama=result.get("tema_utama", []),
+                tema_utama=themes,
                 fraksi_terlibat=result.get("fraksi_terlibat", []),
                 rekomendasi_tindak_lanjut=result.get("rekomendasi_tindak_lanjut", ""),
                 cost_usd=cost,
             )
 
         except Exception as e:
+            logger.error(f"CompileAgent failed: {str(e)}")
             return KompilasiResponse(
                 status="error",
                 jumlah_anggota=len(relevant_responses),

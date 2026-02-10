@@ -17,3 +17,6 @@ wheels/
 
 # Other files
 others/
+
+# Logs directory
+logs/

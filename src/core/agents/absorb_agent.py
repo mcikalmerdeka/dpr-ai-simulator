@@ -2,14 +2,15 @@
 
 import json
 from typing import Dict, Any
+import logging
 
 from langchain_core.messages import HumanMessage, SystemMessage
 
 from .base import BaseAgent
 from ...models import DPRMember, Aspirasi, AbsorpsiResponse
-
-
 from ..faction_data import get_faction_persona
+
+logger = logging.getLogger("dpr_simulator.agents.absorb")
 
 class AbsorbAgent(BaseAgent):
     """
@@ -82,6 +83,8 @@ Berikan respons dalam format JSON:
         Returns:
             AbsorpsiResponse with the member's analysis
         """
+        logger.debug(f"AbsorbAgent processing - Member {member.id} ({member.faction}, {member.komisi}) analyzing aspirasi {aspirasi.id}")
+        
         messages = [
             SystemMessage(content=self.get_system_prompt()),
             HumanMessage(content=self._build_user_prompt(member, aspirasi)),
@@ -89,15 +92,16 @@ Berikan respons dalam format JSON:
 
         cost = 0.0
         try:
+            logger.debug(f"Making OpenAI API call for Member {member.id}...")
             response = await self.llm.ainvoke(messages)
 
             # Calculate cost from token usage
             if hasattr(response, "response_metadata"):
                 usage = response.response_metadata.get("token_usage", {})
-                cost = self._calculate_cost(
-                    usage.get("prompt_tokens", 0),
-                    usage.get("completion_tokens", 0),
-                )
+                prompt_tokens = usage.get("prompt_tokens", 0)
+                completion_tokens = usage.get("completion_tokens", 0)
+                cost = self._calculate_cost(prompt_tokens, completion_tokens)
+                logger.debug(f"Member {member.id} - Tokens: {prompt_tokens} prompt, {completion_tokens} completion")
 
             # Parse JSON response
             content = response.content
@@ -110,13 +114,18 @@ Berikan respons dalam format JSON:
             content = content.strip()
 
             result = json.loads(content)
+            
+            relevansi = result.get("relevansi", "rendah")
+            sentiment = result.get("sentiment", "Netral")
+            
+            logger.debug(f"Member {member.id} response - Relevance: {relevansi}, Sentiment: {sentiment}, Cost: ${cost:.6f}")
 
             return AbsorpsiResponse(
                 member_id=member.id,
                 aspirasi_id=aspirasi.id,
-                relevansi=result.get("relevansi", "rendah"),
+                relevansi=relevansi,
                 alasan_relevansi=result.get("alasan_relevansi", ""),
-                sentiment=result.get("sentiment", "Netral"),
+                sentiment=sentiment,
                 quote=result.get("quote", ""),
                 poin_kunci=result.get("poin_kunci", []),
                 rekomendasi_awal=result.get("rekomendasi_awal", ""),
@@ -124,6 +133,7 @@ Berikan respons dalam format JSON:
             )
 
         except Exception as e:
+            logger.error(f"AbsorbAgent failed for Member {member.id}: {str(e)}")
             return AbsorpsiResponse(
                 member_id=member.id,
                 aspirasi_id=aspirasi.id,

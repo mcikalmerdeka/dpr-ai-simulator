@@ -2,6 +2,7 @@
 
 import asyncio
 import json
+import logging
 from datetime import datetime
 from typing import List, Generator, Tuple, Any
 
@@ -16,6 +17,8 @@ from ..config.examples import (
     ASPIRATION_1, ASPIRATION_2, ASPIRATION_3, ASPIRATION_4,
     ASPIRATION_5, ASPIRATION_6, ASPIRATION_7
 )
+
+logger = logging.getLogger("dpr_simulator.ui")
 
 
 # Custom CSS for modern look
@@ -228,6 +231,15 @@ async def process_aspirasi_async(
     
     Yields tuples of (messages, all_members_df, relevant_members_df, responding_members_df)
     """
+    logger.info("=" * 70)
+    logger.info("NEW ASPIRATION REQUEST RECEIVED")
+    logger.info(f"  Category: {category}")
+    logger.info(f"  Source: {source}")
+    logger.info(f"  Priority: {priority}")
+    logger.info(f"  Member Count: {member_count}")
+    logger.info(f"  Sample Size: {sample_size}")
+    logger.info(f"  Komisi Filter: {komisi}")
+    logger.info("=" * 70)
 
     # Empty dataframes for initial state
     empty_df = pd.DataFrame(columns=["ID", "Nama", "Fraksi", "Komisi", "Dapil", "Provinsi", "Keahlian"])
@@ -235,11 +247,14 @@ async def process_aspirasi_async(
 
     # Validate API key
     if not api_key:
+        logger.error("Processing failed: No API key provided")
         yield (
             [{"role": "assistant", "content": "❌ Error: Mohon masukkan OpenAI API Key terlebih dahulu."}],
             empty_df, empty_df, empty_response_df
         )
         return
+    
+    logger.info("API key validated, initializing simulator...")
 
     # Initialize simulator
     simulator = DPRSimulator(api_key=api_key)
@@ -258,6 +273,8 @@ async def process_aspirasi_async(
         priority=priority,
         timestamp=datetime.now(),
     )
+    
+    logger.info(f"Aspirasi created (ID: {aspirasi.id}), starting pipeline...")
 
     # Progress messages - Gradio 6.x uses OpenAI-style message format by default
     messages = []
@@ -278,6 +295,7 @@ async def process_aspirasi_async(
     try:
         # Resolve komisi filter
         komisi_filter = komisi if komisi != "Auto (Sesuai Kategori)" else None
+        logger.info(f"Starting pipeline with komisi_filter: {komisi_filter or 'Auto'}")
 
         result = await simulator.process_aspirasi(
             aspirasi,
@@ -285,6 +303,8 @@ async def process_aspirasi_async(
             komisi_filter=komisi_filter,
             progress_callback=progress_callback,
         )
+        
+        logger.info(f"Pipeline completed successfully - Total cost: ${result.total_cost_usd:.6f}")
 
         # Build relevant members dataframe
         relevant_members = []
@@ -317,6 +337,7 @@ async def process_aspirasi_async(
         yield (messages, all_members_df, relevant_members_df, responding_members_df)
 
     except Exception as e:
+        logger.exception(f"Pipeline failed with error: {str(e)}")
         messages.append({"role": "assistant", "content": f"❌ Error: {str(e)}"})
         yield (messages, all_members_df, empty_df, empty_response_df)
 
@@ -609,7 +630,12 @@ Where **N** = sample size (number of DPR members processing the aspiration)
 
 def launch_app():
     """Launch the Gradio application."""
+    logger.info("Creating Gradio application...")
     app = create_app()
+    
+    logger.info(f"Launching Gradio app on {settings.gradio_server_name}:{settings.gradio_server_port}")
+    logger.info(f"Share mode: {settings.gradio_share}")
+    
     app.launch(
         server_name=settings.gradio_server_name,
         server_port=settings.gradio_server_port,
