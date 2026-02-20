@@ -16,7 +16,7 @@ from ..models import (
     PipelineResult,
 )
 from .member_factory import DPRMemberFactory
-from .agents import AbsorbAgent, CompileAgent, FollowUpAgent
+from .agents import AbsorbAgent, CompileAgent, FollowUpAgent, CouncilDiscussionAgent
 
 logger = logging.getLogger("dpr_simulator.simulator")
 
@@ -49,9 +49,10 @@ class DPRSimulator:
         logger.info(f"Initializing DPR Simulator with model: {self.model}")
 
         # Initialize agents
-        logger.debug("Initializing agents (Absorb, Compile, FollowUp)")
+        logger.debug("Initializing agents (Absorb, Compile, CouncilDiscussion, FollowUp)")
         self.absorb_agent = AbsorbAgent(api_key=self.api_key, model=self.model)
         self.compile_agent = CompileAgent(api_key=self.api_key, model=self.model)
+        self.council_discussion_agent = CouncilDiscussionAgent(api_key=self.api_key, model=self.model)
         self.followup_agent = FollowUpAgent(api_key=self.api_key, model=self.model)
 
         # Initialize members
@@ -207,21 +208,52 @@ class DPRSimulator:
             logger.error(f"  - Error: {kompilasi.error}")
         log(f"✅ Step 2 selesai: Status {kompilasi.status}")
 
-        # Step 3: Menindaklanjuti (Follow-up)
+        # Step 3: Council Discussion (NEW!)
+        council_discussion = None
+        if kompilasi.status == "terkumpul":
+            logger.info("[STEP 3: COUNCIL DISCUSSION] Starting multi-member deliberation...")
+            log("🏛️ Step 3: Diskusi antar anggota DPR (Council)")
+            
+            # Get relevant members who responded
+            responding_member_ids = [r.member_id for r in all_responses if r.error is None]
+            relevant_members = [m for m in self.members if m.id in responding_member_ids]
+            
+            # Run council discussion
+            council_discussion = await self.council_discussion_agent.invoke(
+                aspirasi=aspirasi,
+                responses=all_responses,
+                members=relevant_members,
+                discussion_rounds=2
+            )
+            total_cost += council_discussion.cost_usd
+            
+            logger.info(f"[STEP 3: COUNCIL DISCUSSION] Completed - Cost: ${council_discussion.cost_usd:.6f}")
+            if council_discussion.status == "success":
+                logger.info(f"  - Rounds: {len(council_discussion.diskusi)}")
+                logger.info(f"  - Consensus: {council_discussion.konsensus}")
+                logger.info(f"  - Factions involved: {list(council_discussion.posisi_fraksi.keys())}")
+            if council_discussion.error:
+                logger.warning(f"  - Warning: {council_discussion.error}")
+            log(f"✅ Step 3 selesai: Diskusi council dengan konsensus {council_discussion.konsensus}")
+        else:
+            logger.warning("[STEP 3: COUNCIL DISCUSSION] Skipped - No compilation to discuss")
+            log("⚠️ Step 3 dilewati: Tidak ada kompilasi untuk didiskusikan")
+
+        # Step 4: Menindaklanjuti (Follow-up)
         tindak_lanjut = None
         if kompilasi.status == "terkumpul":
-            logger.info("[STEP 3: FOLLOW-UP] Creating action plan...")
-            log("📝 Step 3: Menindaklanjuti dengan rencana aksi")
+            logger.info("[STEP 4: FOLLOW-UP] Creating action plan...")
+            log("📝 Step 4: Menindaklanjuti dengan rencana aksi")
             tindak_lanjut = await self.followup_agent.invoke(aspirasi, kompilasi)
             total_cost += tindak_lanjut.cost_usd
             
-            logger.info(f"[STEP 3: FOLLOW-UP] Completed - Cost: ${tindak_lanjut.cost_usd:.6f}")
+            logger.info(f"[STEP 4: FOLLOW-UP] Completed - Cost: ${tindak_lanjut.cost_usd:.6f}")
             if tindak_lanjut.komisi_penanggung_jawab:
                 logger.info(f"  - Responsible commission: {tindak_lanjut.komisi_penanggung_jawab}")
                 logger.info(f"  - Timeline: {tindak_lanjut.timeline}")
             if tindak_lanjut.error:
                 logger.error(f"  - Error: {tindak_lanjut.error}")
-            log("✅ Step 3 selesai")
+            log("✅ Step 4 selesai")
         else:
             tindak_lanjut = TindakLanjutResponse(
                 langkah_tindak_lanjut=[],
@@ -231,8 +263,8 @@ class DPRSimulator:
                 mekanisme="",
                 error="Tidak ada tindak lanjut karena aspirasi tidak relevan",
             )
-            logger.warning("[STEP 3: FOLLOW-UP] Skipped - No relevant responses to compile")
-            log("⚠️ Step 3 dilewati: Tidak ada tanggapan relevan")
+            logger.warning("[STEP 4: FOLLOW-UP] Skipped - No relevant responses to compile")
+            log("⚠️ Step 4 dilewati: Tidak ada tanggapan relevan")
 
         # Final summary
         logger.info("=" * 60)
@@ -273,6 +305,7 @@ class DPRSimulator:
             aspirasi=aspirasi,
             tanggapan_anggota=all_responses,
             kompilasi=kompilasi,
+            council_discussion=council_discussion,
             tindak_lanjut=tindak_lanjut,
             simulation_details=simulation_details,
             timestamp=datetime.now(),

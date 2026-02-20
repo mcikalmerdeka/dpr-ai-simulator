@@ -1,7 +1,7 @@
 """Response models for DPR AI Simulator pipeline stages."""
 
 from pydantic import BaseModel, Field
-from typing import List, Optional
+from typing import List, Optional, Dict, Any
 from datetime import datetime
 
 from .dpr_member import DPRMember
@@ -61,6 +61,37 @@ class TindakLanjutResponse(BaseModel):
     sumber_dana: str = Field(
         default="", description="Proposed funding sources (APBN/APBD/etc)"
     )
+    pihak_terlibat: List[str] = Field(
+        default_factory=list, description="Parties/stakeholders that need to be involved"
+    )
+    error: Optional[str] = Field(default=None, description="Error message if any")
+    cost_usd: float = Field(default=0.0, description="Cost of this API call in USD")
+
+
+class CouncilDiscussionResponse(BaseModel):
+    """Response from the Council Discussion stage - multi-member deliberation."""
+    
+    status: str = Field(default="success", description="Status: success/error")
+    diskusi: List[Dict[str, Any]] = Field(
+        default_factory=list, 
+        description="Discussion rounds with member statements"
+    )
+    ringkasan_perdebatan: str = Field(
+        default="", 
+        description="Summary of the debate and key arguments"
+    )
+    posisi_fraksi: Dict[str, str] = Field(
+        default_factory=dict,
+        description="Position of each faction on the issue"
+    )
+    konsensus: str = Field(
+        default="",
+        description="Final consensus reached or deadlock status"
+    )
+    rekomendasi_kolektif: str = Field(
+        default="",
+        description="Collective recommendation after discussion"
+    )
     error: Optional[str] = Field(default=None, description="Error message if any")
     cost_usd: float = Field(default=0.0, description="Cost of this API call in USD")
 
@@ -91,6 +122,9 @@ class PipelineResult(BaseModel):
         default_factory=list, description="Individual member responses"
     )
     kompilasi: KompilasiResponse = Field(..., description="Compiled response")
+    council_discussion: Optional[CouncilDiscussionResponse] = Field(
+        default=None, description="Council discussion between selected members"
+    )
     tindak_lanjut: TindakLanjutResponse = Field(..., description="Follow-up actions")
     simulation_details: SimulationDetails = Field(
         default_factory=SimulationDetails, description="Simulation setup details"

@@ -6,6 +6,7 @@ from .responses import (
     AbsorpsiResponse,
     KompilasiResponse,
     TindakLanjutResponse,
+    CouncilDiscussionResponse,
     SimulationDetails,
     PipelineResult,
 )
@@ -16,6 +17,7 @@ __all__ = [
     "AbsorpsiResponse",
     "KompilasiResponse",
     "TindakLanjutResponse",
+    "CouncilDiscussionResponse",
     "SimulationDetails",
     "PipelineResult",
 ]

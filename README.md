@@ -30,10 +30,10 @@ Coba proyeknya disini: [Hugging Face Spaces](https://huggingface.co/spaces/mcika
 
 Proyek ini mensimulasikan 3 fungsi utama DPR dalam menangani aspirasi rakyat melalui pipeline AI multi-tahap:
 
-1. **Menyerap (Absorb)** - AI agents menyerap dan memahami aspirasi dari perspek
-2. if berbagai anggota DPR dengan latar belakang, fraksi, dan daerah pemilihan yang berbeda
-3. **Menghimpun (Compile)** - Mengagregasi dan mengkompilasi tanggapan dari banyak anggota menjadi konsensus kolektif
-4. **Menindaklanjuti (Follow-up)** - Menentukan langkah konkret tindak lanjut, termasuk komisi penanggung jawab, timeline, dan estimasi anggaran
+1. **Menyerap (Absorb)** - AI agents menyerap dan memahami aspirasi dari perspektif berbagai anggota DPR dengan latar belakang, fraksi, dan daerah pemilihan yang berbeda
+2. **Menghimpun (Compile)** - Mengagregasi dan mengkompilasi tanggapan dari banyak anggota menjadi konsensus kolektif
+3. **Diskusi Council (Council Discussion)** - Mensimulasikan deliberasi parlemen antar anggota DPR yang relevan, menunjukkan dinamika fraksi dan pembentukan konsensus
+4. **Menindaklanjuti (Follow-up)** - Menentukan langkah konkret tindak lanjut, termasuk komisi penanggung jawab, timeline, estimasi anggaran, dan pihak-pihak yang perlu dilibatkan
 
 ## ✨ Fitur Utama
 
@@ -43,7 +43,8 @@ Proyek ini mensimulasikan 3 fungsi utama DPR dalam menangani aspirasi rakyat mel
 - **Pelacakan Biaya Real-time** - Monitoring biaya API OpenAI untuk setiap tahap pemrosesan
 - **AI Council Personas** - Anggota DPR memiliki "jiwa" (persona) sesuai ideologi fraksi (Nasionalis, Agamis, Karya, dll) dan memberikan tanggapan lisan (quote) yang natural.
 - **Support 13 Komisi (2024-2029)** - Integrasi penuh dengan bidang tugas 13 Komisi DPR RI untuk filtering relevansi yang akurat.
-- **Visualisasi Data Komprehensif** - Tabel interaktif menampilkan anggota DPR, relevansi, sikap (sentiment), dan tanggapan lisan.
+- **Visualisasi Data Komprehensif** - Tabel interaktif menampilkan anggota DPR, relevansi, sikap (sentiment), tanggapan awal, dan partisipasi dalam diskusi council.
+- **Council Discussion (NEW!)** - Mensimulasikan deliberasi parlemen antar anggota DPR dengan dinamika fraksi, debat multi-putaran, dan pembentukan konsensus.
 - **Konfigurasi Fleksibel** - Pengaturan model, jumlah anggota, dan parameter lainnya melalui environment variables.
 
 ## 🚀 Instalasi dan Penggunaan
@@ -103,10 +104,11 @@ dpr-simulator/
 │   │   ├── member_factory.py    # Factory untuk membuat anggota DPR
 │   │   └── agents/
 │   │       ├── __init__.py
-│   │       ├── base.py          # Base class untuk semua agent
-│   │       ├── absorb_agent.py  # Agent tahap 1: Menyerap
-│   │       ├── compile_agent.py # Agent tahap 2: Menghimpun
-│   │       └── followup_agent.py # Agent tahap 3: Menindaklanjuti
+│   │       ├── base.py                       # Base class untuk semua agent
+│   │       ├── absorb_agent.py               # Agent tahap 1: Menyerap
+│   │       ├── compile_agent.py              # Agent tahap 2: Menghimpun
+│   │       ├── council_discussion_agent.py   # Agent tahap 3: Diskusi Council
+│   │       └── followup_agent.py             # Agent tahap 4: Menindaklanjuti
 │   └── ui/
 │       ├── __init__.py
 │       └── app.py               # Gradio web interface
@@ -121,25 +123,42 @@ dpr-simulator/
 
 **Pengaturan Lainnya:** Dapat dikonfigurasi melalui environment variables (opsional):
 
-| Variable                 | Default        | Deskripsi                             |
-| ------------------------ | -------------- | ------------------------------------- |
-| `OPENAI_MODEL`           | `gpt-4.1-nano` | Model OpenAI yang digunakan           |
-| `PROMPT_COST_PER_1K`     | `0.0001`       | Biaya per 1k prompt tokens (USD)      |
-| `COMPLETION_COST_PER_1K` | `0.0004`       | Biaya per 1k completion tokens (USD)  |
-| `DEFAULT_MEMBER_COUNT`   | `50`           | Jumlah default anggota DPR            |
-| `BATCH_SIZE`             | `10`           | Ukuran batch untuk pemrosesan paralel |
-| `RATE_LIMIT_DELAY`       | `1.0`          | Delay antar batch (detik)             |
-| `GRADIO_SERVER_NAME`     | `127.0.0.1`    | Host server Gradio                    |
-| `GRADIO_SERVER_PORT`     | `7860`         | Port server Gradio                    |
-| `GRADIO_SHARE`           | `False`        | Share aplikasi secara publik          |
+| Variable                    | Default        | Deskripsi                             |
+| --------------------------- | -------------- | ------------------------------------- |
+| `OPENAI_MODEL`              | `gpt-4.1-nano` | Model OpenAI yang digunakan           |
+| `PROMPT_COST_PER_1K`        | `0.0001`       | Biaya per 1k prompt tokens (USD)      |
+| `COMPLETION_COST_PER_1K`    | `0.0004`       | Biaya per 1k completion tokens (USD)  |
+| `DEFAULT_MEMBER_COUNT`      | `50`           | Jumlah default anggota DPR            |
+| `BATCH_SIZE`                | `10`           | Ukuran batch untuk pemrosesan paralel |
+| `RATE_LIMIT_DELAY`          | `1.0`          | Delay antar batch (detik)             |
+| `GRADIO_SERVER_NAME`        | `127.0.0.1`    | Host server Gradio                    |
+| `GRADIO_SERVER_PORT`        | `7860`         | Port server Gradio                    |
+| `GRADIO_SHARE`              | `False`        | Share aplikasi secara publik          |
+| `COUNCIL_DISCUSSION_ROUNDS` | `2`            | Jumlah putaran diskusi council        |
 
 ## 💰 Estimasi Biaya
 
 Menggunakan model `gpt-4.1-nano`:
 
-- **Per aspirasi** (20 anggota): ~$0.001-0.005 USD (Rp 15-75)
-- **Simulasi penuh** (50 anggota): ~$0.01-0.02 USD (Rp 150-300)
-- **Simulasi skala DPR** (575 anggota): ~$0.05-0.10 USD (Rp 750-1500)
+**Formula: Total API Calls = N + 3**
+
+Dimana **N** = sample size (jumlah anggota DPR yang memproses aspirasi)
+
+**Rincian 4 Tahap:**
+
+1. **Menyerap (Absorb):** N API calls - setiap anggota menganalisis aspirasi secara independen
+2. **Menghimpun (Compile):** 1 API call - agregasi konsensus dari semua anggota
+3. **Diskusi Council:** 1 API call - simulasi deliberasi parlemen antar anggota
+4. **Menindaklanjuti (Follow-up):** 1 API call - generate action plan lengkap
+
+**Estimasi Biaya:**
+
+| Sample Size | Stage 1 | Stage 2 | Stage 3 | Stage 4 | **Total API Calls** | **Estimasi Biaya** |
+| ----------- | ------- | ------- | ------- | ------- | ------------------- | ------------------ |
+| 20 anggota  | 20      | 1       | 1       | 1       | **23**              | ~$0.002-0.005      |
+| 50 anggota  | 50      | 1       | 1       | 1       | **53**              | ~$0.005-0.01       |
+| 100 anggota | 100     | 1       | 1       | 1       | **103**             | ~$0.01-0.02        |
+| 575 anggota | 575     | 1       | 1       | 1       | **578**             | ~$0.05-0.10        |
 
 Bandingkan dengan anggaran DPR aktual: **~Rp 5 Triliun/tahun**!
 
@@ -192,6 +211,15 @@ async def main():
     print(f"Komisi penanggung jawab: {result.tindak_lanjut.komisi_penanggung_jawab}")
     print(f"Timeline: {result.tindak_lanjut.timeline}")
 
+    # Tampilkan hasil diskusi council (jika ada)
+    if result.council_discussion and result.council_discussion.status == "success":
+        print(f"\n=== Diskusi Council ===")
+        print(f"Konsensus: {result.council_discussion.konsensus}")
+        print(f"Rekomendasi Kolektif: {result.council_discussion.rekomendasi_kolektif}")
+        print(f"\nPosisi Fraksi:")
+        for fraksi, posisi in result.council_discussion.posisi_fraksi.items():
+            print(f"  - {fraksi}: {posisi}")
+
 asyncio.run(main())
 ```
 
@@ -236,10 +264,17 @@ sequenceDiagram
     CompileAgent-->>DPRSimulator: KompilasiResponse
     DPRSimulator->>Gradio UI: Update: Kompilasi selesai
 
-    Note over DPRSimulator,OpenAI API: Tahap 3: Menindaklanjuti
+    Note over DPRSimulator,OpenAI API: Tahap 3: Diskusi Council
+    DPRSimulator->>CouncilDiscussionAgent: invoke(aspirasi, responses, members)
+    CouncilDiscussionAgent->>OpenAI API: Simulasi deliberasi parlemen
+    OpenAI API-->>CouncilDiscussionAgent: Diskusi multi-putaran + konsensus
+    CouncilDiscussionAgent-->>DPRSimulator: CouncilDiscussionResponse
+    DPRSimulator->>Gradio UI: Update: Diskusi council selesai
+
+    Note over DPRSimulator,OpenAI API: Tahap 4: Menindaklanjuti
     DPRSimulator->>FollowUpAgent: invoke(kompilasi, aspirasi)
     FollowUpAgent->>OpenAI API: Generate action plan konkret
-    OpenAI API-->>FollowUpAgent: Langkah + timeline + anggaran
+    OpenAI API-->>FollowUpAgent: Langkah + timeline + anggaran + pihak terlibat
     FollowUpAgent-->>DPRSimulator: TindakLanjutResponse
 
     DPRSimulator-->>Gradio UI: PipelineResult (lengkap)
@@ -268,14 +303,25 @@ sequenceDiagram
 - Menghitung statistik partisipasi (jumlah anggota, distribusi relevansi)
 - **Output:** `KompilasiResponse` dengan ringkasan kolektif dan rekomendasi tindak lanjut
 
-### 3. Tahap Tindak Lanjut (Menindaklanjuti)
+### 3. Tahap Diskusi Council (Council Discussion)
 
-- Menentukan langkah-langkah konkret tindak lanjut berdasarkan kompilasi
+- Mensimulasikan deliberasi parlemen antar anggota DPR yang relevan
+- Anggota menyampaikan posisi dan argumen sesuai ideologi fraksi mereka
+- Terjadi debat multi-putaran dengan tanggapan antar anggota
+- Menunjukkan dinamika fraksi (koalisi vs oposisi)
+- Membentuk konsensus atau mengidentifikasi deadlock
+- Menghasilkan rekomendasi kolektif berdasarkan hasil diskusi
+- **Output:** `CouncilDiscussionResponse` dengan transkrip diskusi, posisi fraksi, dan tingkat konsensus
+
+### 4. Tahap Tindak Lanjut (Menindaklanjuti)
+
+- Menentukan langkah-langkah konkret tindak lanjut berdasarkan kompilasi dan diskusi council
 - Menetapkan komisi DPR yang bertanggung jawab
 - Membuat timeline realistis untuk implementasi
 - Menentukan mekanisme (RDP/Hearing/Kunjungan Kerja/dll)
 - Mengestimasi anggaran dengan rincian per item dan sumber dana
 - Menetapkan indikator keberhasilan yang terukur
+- Mengidentifikasi pihak-pihak yang perlu dilibatkan (Kementerian, Pemda, LSM, dll)
 - **Output:** `TindakLanjutResponse` dengan action plan lengkap dan terstruktur
 
 ## 🤝 Kontribusi
