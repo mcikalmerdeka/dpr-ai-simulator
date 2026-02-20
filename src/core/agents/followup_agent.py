@@ -69,6 +69,7 @@ Tugas Anda:
 5. HITUNG estimasi anggaran yang realistis (dalam Rupiah)
 6. Rinci alokasi anggaran per langkah/item
 7. Tentukan sumber dana (APBN/APBD/kombinasi)
+8. Tentukan pihak-pihak yang perlu dilibatkan (Kementerian, Pemda, LSM, Akademisi, dll)
 
 Berikan respons dalam format JSON:
 {{
@@ -83,7 +84,8 @@ Berikan respons dalam format JSON:
         "Item 2: Rp Y miliar - deskripsi",
         ...
     ],
-    "sumber_dana": "Sumber dana usulan (misal: APBN 70% (Kementerian X) + APBD Provinsi Y 30%)"
+    "sumber_dana": "Sumber dana usulan (misal: APBN 70% (Kementerian X) + APBD Provinsi Y 30%)",
+    "pihak_terlibat": ["Pihak 1", "Pihak 2", ...]
 }}"""
 
     async def invoke(
@@ -158,6 +160,7 @@ Berikan respons dalam format JSON:
                 estimasi_anggaran=anggaran,
                 rincian_anggaran=result.get("rincian_anggaran", []),
                 sumber_dana=result.get("sumber_dana", ""),
+                pihak_terlibat=result.get("pihak_terlibat", []),
                 cost_usd=cost,
             )
 

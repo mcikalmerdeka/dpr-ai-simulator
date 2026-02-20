@@ -98,6 +98,67 @@ footer {
 """
 
 
+def format_council_discussion(discussion) -> str:
+    """Format council discussion for display."""
+    if not discussion or discussion.status != "success":
+        return ""
+    
+    output = []
+    output.append("---\n### 🏛️ Diskusi Council (Deliberasi Antar Anggota)\n")
+    
+    # Show discussion rounds
+    if discussion.diskusi:
+        for round_data in discussion.diskusi:
+            round_num = round_data.get("putaran", 0)
+            output.append(f"\n**Putaran {round_num}:**")
+            
+            for intervention in round_data.get("intervensi", []):
+                nama = intervention.get("nama", "Unknown")
+                fraksi = intervention.get("fraksi", "Unknown")
+                tipe = intervention.get("tipe", "")
+                isi = intervention.get("isi", "")
+                menanggapi = intervention.get("menanggapi")
+                
+                # Format based on intervention type
+                if tipe == "pemaparan":
+                    output.append(f"\n💬 **{nama}** ({fraksi})")
+                    output.append(f"> {isi}")
+                elif tipe == "tanggapan" and menanggapi:
+                    output.append(f"\n↳ **{nama}** ({fraksi}) menanggapi:")
+                    output.append(f"> {isi}")
+                else:
+                    output.append(f"\n💬 **{nama}** ({fraksi})")
+                    output.append(f"> {isi}")
+    
+    # Show faction positions
+    if discussion.posisi_fraksi:
+        output.append("\n**📊 Posisi Fraksi:**")
+        for fraksi, posisi in discussion.posisi_fraksi.items():
+            output.append(f"- **{fraksi}:** {posisi}")
+    
+    # Show consensus level
+    if discussion.konsensus:
+        consensus_emoji = {
+            "sepenuhnya": "✅",
+            "setengah": "⚡", 
+            "terbagi": "⚠️",
+            "deadlock": "❌"
+        }.get(discussion.konsensus.lower(), "📝")
+        output.append(f"\n**{consensus_emoji} Tingkat Konsensus:** {discussion.konsensus.upper()}")
+    
+    # Show summary
+    if discussion.ringkasan_perdebatan:
+        output.append(f"\n**📝 Ringkasan Perdebatan:**")
+        output.append(f"{discussion.ringkasan_perdebatan}")
+    
+    # Show collective recommendation
+    if discussion.rekomendasi_kolektif:
+        output.append(f"\n**🤝 Rekomendasi Kolektif:**")
+        output.append(f"{discussion.rekomendasi_kolektif}")
+    
+    return "\n".join(output)
+
+
 def format_result_for_display(result) -> str:
     """Format pipeline result for display in the chat."""
     output = []
@@ -182,6 +243,12 @@ def format_result_for_display(result) -> str:
             for indikator in result.tindak_lanjut.indikator_keberhasilan:
                 output.append(f"- {indikator}")
 
+        # Pihak Terlibat
+        if result.tindak_lanjut.pihak_terlibat:
+            output.append("\n**Pihak yang Perlu Dilibatkan:**")
+            for pihak in result.tindak_lanjut.pihak_terlibat:
+                output.append(f"- {pihak}")
+
         # Estimasi Anggaran dari AI DPR
         if result.tindak_lanjut.estimasi_anggaran:
             output.append("\n---\n### 💰 Estimasi Anggaran (Dihitung oleh AI DPR)\n")
@@ -217,6 +284,104 @@ def members_to_dataframe(members: List[DPRMember]) -> pd.DataFrame:
     return pd.DataFrame(data)
 
 
+def extract_member_council_statements(council_discussion, member_name: str) -> str:
+    """Extract all statements made by a specific member in the council discussion.
+    
+    Args:
+        council_discussion: The CouncilDiscussionResponse object
+        member_name: Name of the member to extract statements for
+        
+    Returns:
+        Formatted string of all statements made by the member
+    """
+    if not council_discussion or council_discussion.status != "success" or not council_discussion.diskusi:
+        return ""
+    
+    statements = []
+    for round_data in council_discussion.diskusi:
+        for intervention in round_data.get("intervensi", []):
+            if intervention.get("nama") == member_name:
+                tipe = intervention.get("tipe", "")
+                isi = intervention.get("isi", "")
+                menanggapi = intervention.get("menanggapi")
+                
+                if tipe == "pemaparan":
+                    statements.append(f"[Pemaparan] {isi}")
+                elif tipe == "tanggapan" and menanggapi:
+                    statements.append(f"[Menanggapi] {isi}")
+                else:
+                    statements.append(isi)
+    
+    if not statements:
+        return "Tidak berpartisipasi aktif"
+    
+    # Join statements with separator
+    return " | ".join(statements[:3])  # Limit to first 3 statements to keep it readable
+
+
+def format_council_discussion_for_detail(result) -> str:
+    """Format council discussion specifically for the detail panel."""
+    if not result.council_discussion or result.council_discussion.status != "success":
+        if result.council_discussion and result.council_discussion.error:
+            return f"**⚠️ Diskusi Council:** {result.council_discussion.error}"
+        return "*Tidak ada diskusi council untuk aspirasi ini (mungkin tidak ada tanggapan relevan yang cukup).*"
+    
+    discussion = result.council_discussion
+    output = []
+    
+    # Show discussion rounds
+    if discussion.diskusi:
+        for round_data in discussion.diskusi:
+            round_num = round_data.get("putaran", 0)
+            output.append(f"### Putaran {round_num}\n")
+            
+            for intervention in round_data.get("intervensi", []):
+                nama = intervention.get("nama", "Unknown")
+                fraksi = intervention.get("fraksi", "Unknown")
+                tipe = intervention.get("tipe", "")
+                isi = intervention.get("isi", "")
+                menanggapi = intervention.get("menanggapi")
+                
+                # Format based on intervention type
+                if tipe == "pemaparan":
+                    output.append(f"**💬 {nama}** ({fraksi})")
+                    output.append(f"> {isi}\n")
+                elif tipe == "tanggapan" and menanggapi:
+                    output.append(f"**↳ {nama}** ({fraksi}) *menanggapi:*")
+                    output.append(f"> {isi}\n")
+                else:
+                    output.append(f"**💬 {nama}** ({fraksi})")
+                    output.append(f"> {isi}\n")
+    
+    # Show faction positions
+    if discussion.posisi_fraksi:
+        output.append("\n### 📊 Posisi Fraksi")
+        for fraksi, posisi in discussion.posisi_fraksi.items():
+            output.append(f"- **{fraksi}:** {posisi}")
+    
+    # Show consensus level
+    if discussion.konsensus:
+        consensus_emoji = {
+            "sepenuhnya": "✅",
+            "setengah": "⚡", 
+            "terbagi": "⚠️",
+            "deadlock": "❌"
+        }.get(discussion.konsensus.lower(), "📝")
+        output.append(f"\n**{consensus_emoji} Tingkat Konsensus:** {discussion.konsensus.upper()}")
+    
+    # Show summary
+    if discussion.ringkasan_perdebatan:
+        output.append(f"\n### 📝 Ringkasan Perdebatan")
+        output.append(f"{discussion.ringkasan_perdebatan}")
+    
+    # Show collective recommendation
+    if discussion.rekomendasi_kolektif:
+        output.append(f"\n### 🤝 Rekomendasi Kolektif")
+        output.append(f"{discussion.rekomendasi_kolektif}")
+    
+    return "\n\n".join(output)
+
+
 async def process_aspirasi_async(
     content: str,
     category: str,
@@ -229,7 +394,7 @@ async def process_aspirasi_async(
 ) -> Generator:
     """Process aspiration asynchronously with streaming updates.
     
-    Yields tuples of (messages, all_members_df, relevant_members_df, responding_members_df)
+    Yields tuples of (messages, all_members_df, relevant_members_df, responding_members_df, council_discussion_text)
     """
     logger.info("=" * 70)
     logger.info("NEW ASPIRATION REQUEST RECEIVED")
@@ -243,14 +408,14 @@ async def process_aspirasi_async(
 
     # Empty dataframes for initial state
     empty_df = pd.DataFrame(columns=["ID", "Nama", "Fraksi", "Komisi", "Dapil", "Provinsi", "Keahlian"])
-    empty_response_df = pd.DataFrame(columns=["ID", "Nama", "Fraksi", "Komisi", "Provinsi", "Relevansi", "Sikap", "Tanggapan"])
+    empty_response_df = pd.DataFrame(columns=["ID", "Nama", "Fraksi", "Komisi", "Provinsi", "Relevansi", "Sikap", "Tanggapan Awal", "Diskusi Council"])
 
     # Validate API key
     if not api_key:
         logger.error("Processing failed: No API key provided")
         yield (
             [{"role": "assistant", "content": "❌ Error: Mohon masukkan OpenAI API Key terlebih dahulu."}],
-            empty_df, empty_df, empty_response_df
+            empty_df, empty_df, empty_response_df, ""
         )
         return
     
@@ -289,7 +454,7 @@ async def process_aspirasi_async(
     messages.append({"role": "assistant", "content": f"🚀 Memulai simulasi dengan {member_count} anggota DPR"})
     
     # Yield initial state with all members populated
-    yield (messages, all_members_df, empty_df, empty_response_df)
+    yield (messages, all_members_df, empty_df, empty_response_df, "*Menunggu pemrosesan...*")
 
     # Process
     try:
@@ -320,6 +485,12 @@ async def process_aspirasi_async(
             # Find the member
             member = next((m for m in all_members if m.id == resp.member_id), None)
             if member:
+                # Get initial response (from Absorb stage)
+                tanggapan_awal = f'"{resp.quote}"' if resp.quote else resp.alasan_relevansi
+                
+                # Get council discussion statements (from Council Discussion stage)
+                diskusi_council = extract_member_council_statements(result.council_discussion, member.name)
+                
                 responding_data.append({
                     "ID": member.id,
                     "Nama": member.name,
@@ -328,18 +499,23 @@ async def process_aspirasi_async(
                     "Provinsi": member.province,
                     "Relevansi": resp.relevansi,
                     "Sikap": resp.sentiment,
-                    "Tanggapan": f'"{resp.quote}"' if resp.quote else resp.alasan_relevansi,
+                    "Tanggapan Awal": tanggapan_awal,
+                    "Diskusi Council": diskusi_council if diskusi_council else "-",
                 })
         responding_members_df = pd.DataFrame(responding_data) if responding_data else empty_response_df
 
         # Final result
         messages.append({"role": "assistant", "content": format_result_for_display(result)})
-        yield (messages, all_members_df, relevant_members_df, responding_members_df)
+        
+        # Format council discussion for detail panel
+        council_discussion_detail = format_council_discussion_for_detail(result)
+        
+        yield (messages, all_members_df, relevant_members_df, responding_members_df, council_discussion_detail)
 
     except Exception as e:
         logger.exception(f"Pipeline failed with error: {str(e)}")
         messages.append({"role": "assistant", "content": f"❌ Error: {str(e)}"})
-        yield (messages, all_members_df, empty_df, empty_response_df)
+        yield (messages, all_members_df, empty_df, empty_response_df, f"❌ Error: {str(e)}")
 
 
 def process_aspirasi_sync(
@@ -355,7 +531,7 @@ def process_aspirasi_sync(
 ):
     """Synchronous wrapper for async processing.
     
-    Yields tuples of (messages, all_members_df, relevant_members_df, responding_members_df)
+    Yields tuples of (messages, all_members_df, relevant_members_df, responding_members_df, council_discussion_text)
     """
     # Run async function
     async def run():
@@ -531,10 +707,30 @@ def create_app() -> gr.Blocks:
                 
                 with gr.Accordion("✅ Anggota yang Merespons & Relevansinya", open=True):
                     responding_members_df = gr.Dataframe(
-                        headers=["ID", "Nama", "Fraksi", "Komisi", "Provinsi", "Relevansi", "Sikap", "Tanggapan"],
+                        headers=["ID", "Nama", "Fraksi", "Komisi", "Provinsi", "Relevansi", "Sikap", "Tanggapan Awal", "Diskusi Council"],
                         label="Detail Respons dari Setiap Anggota",
                         interactive=False,
                         wrap=True,
+                    )
+                
+                with gr.Accordion("Diskusi Council (Interaksi Antar Anggota)", open=False):
+                    gr.Markdown("""
+                    <div style='background: #1e3a5f; padding: 12px; border-radius: 8px; margin-bottom: 12px; border-left: 4px solid #ed8936;'>
+                    <strong style='color: #ed8936;'>Simulasi Deliberasi Parlemen</strong>
+                    <p style='color: #e2e8f0; margin: 8px 0 0 0; font-size: 0.9em;'>
+                    Tahap ini mensimulasikan diskusi antar anggota DPR yang relevan, dimana mereka:
+                    </p>
+                    <ul style='color: #e2e8f0; margin: 8px 0 0 0; font-size: 0.85em;'>
+                        <li>Menyampaikan posisi dan argumen sesuai ideologi fraksi</li>
+                        <li>Merespons dan berdebat dengan anggota lain</li>
+                        <li>Membentuk konsensus atau mengidentifikasi deadlock</li>
+                        <li>Menghasilkan rekomendasi kolektif</li>
+                    </ul>
+                    </div>
+                    """, elem_classes="council-info")
+                    council_discussion_text = gr.Markdown(
+                        label="Transkrip Diskusi Council",
+                        value="*Diskusi council akan muncul di sini setelah pemrosesan selesai...*"
                     )
 
         # Example aspirations - store full text separately
@@ -574,27 +770,29 @@ def create_app() -> gr.Blocks:
             gr.Markdown("""
 ### How Many API Calls Happen?
 
-**Formula: Total API Calls = N + 2**
+**Formula: Total API Calls = N + 3**
 
 Where **N** = sample size (number of DPR members processing the aspiration)
 
-**The 3 Stages:**
+**The 4 Stages:**
 1. **Menyerap (Absorb):** N API calls - each DPR member independently analyzes the aspiration (Output: Relevance, Sentiment, Quote)
 2. **Menghimpun (Compile):** 1 API call - aggregates all responses into consensus
-3. **Menindaklanjuti (Follow-up):** 1 API call - creates concrete action plan
+3. **Diskusi Council (Council Discussion):** 1 API call - simulates multi-member deliberation with faction dynamics and consensus building
+4. **Menindaklanjuti (Follow-up):** 1 API call - creates concrete action plan
 
 **Examples Breakdown:**
 
-| Sample Size | Stage 1 Calls | Stage 2 Calls | Stage 3 Calls | **Total API Calls** |
-| ----------- | ------------- | ------------- | ------------- | ------------------- |
-| 20 members  | 20            | 1             | 1             | **22**              |
-| 50 members  | 50            | 1             | 1             | **52**              |
-| 100 members | 100           | 1             | 1             | **102**             |
-| 575 members | 575           | 1             | 1             | **577**             |
+| Sample Size | Stage 1 Calls | Stage 2 Calls | Stage 3 Calls | Stage 4 Calls | **Total API Calls** |
+| ----------- | ------------- | ------------- | ------------- | ------------- | ------------------- |
+| 20 members  | 20            | 1             | 1             | 1             | **23**              |
+| 50 members  | 50            | 1             | 1             | 1             | **53**              |
+| 100 members | 100           | 1             | 1             | 1             | **103**             |
+| 575 members | 575           | 1             | 1             | 1             | **578**             |
 
 **Key Points:**
 - Each DPR member is a truly independent AI agent with unique context (name, faction, province, expertise)
 - Stage 1 processes members in parallel batches of 10 for efficiency
+- Stage 3 (Council Discussion) simulates realistic parliamentary deliberation with faction positions and consensus building
 - All API costs are tracked and displayed in the results
             """)
 
@@ -603,7 +801,7 @@ Where **N** = sample size (number of DPR members processing the aspiration)
         ---
         <center>
         <small>
-        💡 <b>Tentang DPR AI Simulator:</b> Aplikasi ini mensimulasikan bagaimana AI dapat menggantikan fungsi DPR
+        <b>Tentang DPR AI Simulator:</b> Aplikasi ini mensimulasikan bagaimana AI dapat menggantikan fungsi DPR
         dalam menyerap, menghimpun, dan menindaklanjuti aspirasi rakyat dengan biaya yang jauh lebih efisien.
         </small>
         </center>
@@ -613,7 +811,7 @@ Where **N** = sample size (number of DPR members processing the aspiration)
         submit_btn.click(
             fn=process_aspirasi_sync,
             inputs=[content, category, komisi, source, priority, member_count, sample_size, api_key, chatbot],
-            outputs=[chatbot, all_members_df, relevant_members_df, responding_members_df],
+            outputs=[chatbot, all_members_df, relevant_members_df, responding_members_df, council_discussion_text],
         )
 
         # Clear all outputs
@@ -621,8 +819,8 @@ Where **N** = sample size (number of DPR members processing the aspiration)
         empty_response_df = pd.DataFrame(columns=["ID", "Nama", "Fraksi", "Provinsi", "Relevansi", "Alasan"])
         
         clear_btn.click(
-            fn=lambda: ([], empty_df, empty_df, empty_response_df),
-            outputs=[chatbot, all_members_df, relevant_members_df, responding_members_df],
+            fn=lambda: ([], empty_df, empty_df, empty_response_df, ""),
+            outputs=[chatbot, all_members_df, relevant_members_df, responding_members_df, council_discussion_text],
         )
 
     return app
