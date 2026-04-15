@@ -4,7 +4,7 @@ import asyncio
 import json
 import logging
 from datetime import datetime
-from typing import List, Generator, Tuple, Any
+from typing import List
 
 import gradio as gr
 import pandas as pd
@@ -96,67 +96,6 @@ footer {
     display: none !important;
 }
 """
-
-
-def format_council_discussion(discussion) -> str:
-    """Format council discussion for display."""
-    if not discussion or discussion.status != "success":
-        return ""
-    
-    output = []
-    output.append("---\n### 🏛️ Diskusi Council (Deliberasi Antar Anggota)\n")
-    
-    # Show discussion rounds
-    if discussion.diskusi:
-        for round_data in discussion.diskusi:
-            round_num = round_data.get("putaran", 0)
-            output.append(f"\n**Putaran {round_num}:**")
-            
-            for intervention in round_data.get("intervensi", []):
-                nama = intervention.get("nama", "Unknown")
-                fraksi = intervention.get("fraksi", "Unknown")
-                tipe = intervention.get("tipe", "")
-                isi = intervention.get("isi", "")
-                menanggapi = intervention.get("menanggapi")
-                
-                # Format based on intervention type
-                if tipe == "pemaparan":
-                    output.append(f"\n💬 **{nama}** ({fraksi})")
-                    output.append(f"> {isi}")
-                elif tipe == "tanggapan" and menanggapi:
-                    output.append(f"\n↳ **{nama}** ({fraksi}) menanggapi:")
-                    output.append(f"> {isi}")
-                else:
-                    output.append(f"\n💬 **{nama}** ({fraksi})")
-                    output.append(f"> {isi}")
-    
-    # Show faction positions
-    if discussion.posisi_fraksi:
-        output.append("\n**📊 Posisi Fraksi:**")
-        for fraksi, posisi in discussion.posisi_fraksi.items():
-            output.append(f"- **{fraksi}:** {posisi}")
-    
-    # Show consensus level
-    if discussion.konsensus:
-        consensus_emoji = {
-            "sepenuhnya": "✅",
-            "setengah": "⚡", 
-            "terbagi": "⚠️",
-            "deadlock": "❌"
-        }.get(discussion.konsensus.lower(), "📝")
-        output.append(f"\n**{consensus_emoji} Tingkat Konsensus:** {discussion.konsensus.upper()}")
-    
-    # Show summary
-    if discussion.ringkasan_perdebatan:
-        output.append(f"\n**📝 Ringkasan Perdebatan:**")
-        output.append(f"{discussion.ringkasan_perdebatan}")
-    
-    # Show collective recommendation
-    if discussion.rekomendasi_kolektif:
-        output.append(f"\n**🤝 Rekomendasi Kolektif:**")
-        output.append(f"{discussion.rekomendasi_kolektif}")
-    
-    return "\n".join(output)
 
 
 def format_result_for_display(result) -> str:
@@ -558,21 +497,6 @@ def process_aspirasi_sync(
 
 def create_app() -> gr.Blocks:
     """Create the Gradio application."""
-
-    # Create theme for Gradio 6.x
-    theme = gr.themes.Base(
-        primary_hue="blue",
-        secondary_hue="orange",
-        neutral_hue="slate",
-        font=gr.themes.GoogleFont("IBM Plex Sans"),
-    ).set(
-        body_background_fill="linear-gradient(135deg, #0f172a 0%, #1e293b 100%)",
-        block_background_fill="#1e293b",
-        block_border_color="rgba(255, 255, 255, 0.1)",
-        input_background_fill="#334155",
-        button_primary_background_fill="#ed8936",
-        button_primary_background_fill_hover="#dd6b20",
-    )
 
     with gr.Blocks(title="DPR AI Simulator - AI Parliament") as app:
 

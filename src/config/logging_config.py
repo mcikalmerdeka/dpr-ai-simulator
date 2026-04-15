@@ -63,23 +63,9 @@ def setup_logger(name: str = "dpr_simulator", log_file: str = None, level: int =
     return root_logger
 
 
-def get_logger(name: str = None) -> logging.Logger:
-    """Get an existing logger or create a new one with default settings.
-    
-    Args:
-        name: Logger name. If None, returns the root 'dpr_simulator' logger.
-    
-    Returns:
-        Logger instance
-    """
-    if name:
-        return logging.getLogger(f"dpr_simulator.{name}")
-    return logging.getLogger("dpr_simulator")
-
-
 # Pre-configured loggers for key components
-logger_simulator = get_logger("simulator")
-logger_agents = get_logger("agents")
-logger_members = get_logger("members")
-logger_ui = get_logger("ui")
-logger_models = get_logger("models")
+logger_simulator = logging.getLogger("dpr_simulator.simulator")
+logger_agents = logging.getLogger("dpr_simulator.agents")
+logger_members = logging.getLogger("dpr_simulator.members")
+logger_ui = logging.getLogger("dpr_simulator.ui")
+logger_models = logging.getLogger("dpr_simulator.models")

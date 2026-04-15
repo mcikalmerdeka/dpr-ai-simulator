@@ -134,13 +134,4 @@ class PipelineResult(BaseModel):
     )
     total_cost_usd: float = Field(default=0.0, description="Total cost in USD")
 
-    def summary(self) -> str:
-        """Generate a human-readable summary."""
-        return (
-            f"=== Hasil Pemrosesan Aspirasi ===\n"
-            f"Aspirasi: {self.aspirasi.content[:100]}...\n"
-            f"Jumlah Anggota Merespons: {len(self.tanggapan_anggota)}\n"
-            f"Status Kompilasi: {self.kompilasi.status}\n"
-            f"Komisi Penanggung Jawab: {self.tindak_lanjut.komisi_penanggung_jawab}\n"
-            f"Total Biaya Pemrosesan Aspirasi: ${self.total_cost_usd:.6f}\n"
-        )
+
