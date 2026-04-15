@@ -4,7 +4,7 @@ import asyncio
 import json
 import logging
 from datetime import datetime
-from typing import List
+from typing import List, Generator
 
 import gradio as gr
 import pandas as pd
