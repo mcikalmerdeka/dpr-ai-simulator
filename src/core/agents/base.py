@@ -4,9 +4,7 @@ from abc import ABC, abstractmethod
 from typing import Any, Dict
 import logging
 from langchain_openai import ChatOpenAI
-from langchain_core.messages import HumanMessage, SystemMessage
 from langchain_core.output_parsers import JsonOutputParser
-from langchain_core.prompts import ChatPromptTemplate
 
 from ...config import settings
 

@@ -1,7 +1,6 @@
 """Absorb (Menyerap) agent for processing aspirations."""
 
 import json
-from typing import Dict, Any
 import logging
 
 from langchain_core.messages import HumanMessage, SystemMessage

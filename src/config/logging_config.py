@@ -63,9 +63,4 @@ def setup_logger(name: str = "dpr_simulator", log_file: str = None, level: int =
     return root_logger
 
 
-# Pre-configured loggers for key components
-logger_simulator = logging.getLogger("dpr_simulator.simulator")
-logger_agents = logging.getLogger("dpr_simulator.agents")
-logger_members = logging.getLogger("dpr_simulator.members")
-logger_ui = logging.getLogger("dpr_simulator.ui")
-logger_models = logging.getLogger("dpr_simulator.models")
+
